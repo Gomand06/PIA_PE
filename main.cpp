@@ -13,6 +13,24 @@ struct login{
     char user[10];
     char passwd[10];
 }usuario;
+//struct de zona
+struct reg_zona{
+    char id[10]= "";
+    string nomZona= "";
+    float umbral = 0;
+    int status_ventilador = 1;
+}zona;
+//Funcion para registro de zonas
+void zonas(){
+    cout<<VERDE<<"Zona nueva"<<RESET<<endl;
+    cout<<"Ingrese el ID de la zona: ";
+    cin>>zona.id;
+    cin.ignore();//Ignora el \n que queda del cin
+    cout<<"\nIngresa el nombre de la zona: ";
+    getline(cin,zona.nomZona);
+    cout<<"Ingrese el umbral al que se activará el ventilador: ";
+    cin>>zona.umbral;
+}
 //funcion para crear usuarios
 void newUser(){
     cout<<VERDE<<"NUEVO USUARIO"<<RESET<<endl;
