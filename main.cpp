@@ -63,25 +63,74 @@ bool checkUser(){
     }
     return exito;
 }
-//menu del programa principal
+
+//funciones para control de temperaturas
+void verTemp(){
+    
+}
+
+void ventilador(){
+
+}
+void historial(){
+
+}
+
+void monitoreo(){}
+
+
+
+//menu para Control de Temperaturas
+void menuTem(){
+    int op=0;
+    do{
+        cout << "\nCONTROL DE TEMPERATURAS" << endl;
+        cout << "1. Ver temperatura actual" << endl;
+        cout << "2. Activar ventilador manualmente" << endl;
+        cout << "3. Ver historial de eventos" << endl;
+        cout << "4. Simular monitoreo en tiempo real" << endl;
+        cout << "5. Volver al menu" << endl;
+        cin >> op;
+        switch (op) {
+            case 1: {
+                verTemp();
+                break;
+            }
+            case 2: {
+                ventilador();
+            break;
+            } 
+            case 3:{
+                historial();
+            break;
+            }
+            case 4: {
+                monitoreo();
+            break;
+            }
+            case 5:{
+                cout << "Volviendo al menu principal... " << endl;
+            break;
+            }
+            default:
+                cout << ROJO << "Opcion invalida" << RESET << endl;
+                break;
+        } 
+    } while (op!=0);
+}
+
+//menu del programa principal YAP
 int mainMenu(){
-            /*
-            1. Zonas
-                a. Registro de Zona
-            2. Control de Temperaturas
-                a. Ver temperatura actual
-                b. Activar ventilador manualmente
-                c. Ver historial de eventos
-                d. Simular monitoreo en tiempo real
-            3. Consultas
-                a. Buscar eventos por rango de temperatura o fecha
-                b. Generar reporte estadístico 
-                c. Exportar historial a archivo csv
-            4. Configuración
-                a. Configurar umbral de temperatura por zona
-                b. Restaurar configuración por defecto por zona
-            5. Salir
-            */
+    int op;
+    cout << "\n" << " MENU PRINCIPAL " << endl;
+    cout << "1. Zonas" << endl;
+    cout << "2. Control de Temperaturas" << endl;
+    cout << "3. Consultas" << endl;
+    cout << "4. Configuración" << endl;
+    cout << "5. Salir" << endl;
+    cin >> op;
+    return op;
+
 }
 int main(){
     int op=0;
@@ -116,23 +165,7 @@ int main(){
     do{
         op=mainMenu();
         switch(op){
-            /*
-            1. Zonas
-                a. Registro de Zona
-            2. Control de Temperaturas
-                a. Ver temperatura actual
-                b. Activar ventilador manualmente
-                c. Ver historial de eventos
-                d. Simular monitoreo en tiempo real
-            3. Consultas
-                a. Buscar eventos por rango de temperatura o fecha
-                b. Generar reporte estadístico 
-                c. Exportar historial a archivo csv
-            4. Configuración
-                a. Configurar umbral de temperatura por zona
-                b. Restaurar configuración por defecto por zona
-            5. Salir
-            */
+            
         }
     }while(op!=0);
 
