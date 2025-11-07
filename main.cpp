@@ -14,7 +14,6 @@ struct login{
     char passwd[10];
 }usuario;
 //struct de zona
-//struct de zona
 struct reg_zona{
     char id[10]= "";
     char nomZona[50];
@@ -134,7 +133,7 @@ bool checkUser(){
     while(file.read((char*)&usuario, sizeof(usuario))){
         if(strcmp(usuario.user,userTemp)==0 && strcmp(usuario.passwd,passwdTemp)==0){
             exito=true;
-            cout<<VERDE<<"Exito al iniciar sesión"<<RESET<<endl;
+            cout<<VERDE<<"Exito al iniciar sesión\n"<<RESET<<endl;
             break;
         } 
     }
@@ -231,6 +230,7 @@ int main(){
             case 0:
             {
                 cout<<ROJO<<"Saliendo del sistema...\nGracias por usar nuestro programa"<<RESET;
+                return 0;
                 break;
             }
             default:
@@ -245,6 +245,24 @@ int main(){
         switch(op){
             case 1:{
                 zonas();
+                break;
+            }
+            case 2:
+            {
+                break;
+            }
+            case 3:
+            {
+                break;
+            }
+            case 4:
+            {
+                break;
+            }
+            case 5:
+            {
+                cout<<ROJO<<"Cerrando sesión...\n"<<RESET;
+                return 0;
                 break;
             }
         }
