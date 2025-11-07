@@ -22,11 +22,34 @@ struct reg_zona{
     int status_ventilador; //0=off y 1=on
 }zona;
 //Funcion para registro de zonas
+bool verificador_zonas(char ID[]){
+    reg_zona z;
+    ifstream file("zonas.dat",ios::binary);
+    if(!file){
+        ofstream crear("zonas.dat",ios::binary);
+        cout<<ROJO<<"No se pudo abrir el archivo, intenta de nuevo: "<<RESET<<endl;
+        crear.close();
+        return false;
+    }
+    while (file.read((char*)(&z), sizeof(reg_zona))){
+        if(strcmp(z.id,ID)==0){
+            file.close();
+            cout<<ROJO<<"Este id ya fue usado previamente, ingrese un id nuevo: "<<RESET<<endl;
+            return false;
+        }
+    }
+    file.close();
+    return true;
+}
 void zonas(){
-    reg_zona zona;
-    cout<<VERDE<<"Registro de Zona nueva"<<RESET<<endl;
-    cout<<"Ingrese el ID de la zona: ";
-    cin>>zona.id;
+    bool res=false;
+    reg_zona zona{};
+    do{
+        cout<<VERDE<<"Registro de Zona nueva"<<RESET<<endl;
+        cout<<"Ingrese el ID de la zona: ";
+        cin>>zona.id;
+        res=verificador_zonas(zona.id);
+    }while(!res);    
     cin.ignore();//Ignora el \n que queda del cin
     cout<<"\nIngresa el nombre de la zona: ";
     cin.getline(zona.nomZona, 50);    
@@ -112,10 +135,12 @@ bool checkUser(){
         if(strcmp(usuario.user,userTemp)==0 && strcmp(usuario.passwd,passwdTemp)==0){
             exito=true;
             cout<<VERDE<<"Exito al iniciar sesión"<<RESET<<endl;
-        }else{
+            break;
+        } 
+    }
+    if(!exito){
             cout<<ROJO<<"Usuario y contraseña incorrectos."<<RESET<<endl;
         }
-    }
     return exito;
 }
 
@@ -190,7 +215,7 @@ int main(){
     bool exito=false;
     cout<<AMARILLO<<"SISTEMA DE CONTROL DE TEMPERATURA"<<endl<<RESET;
     do{
-        cout<<"MENÚ"<<endl<<"1. Iniciar Sesión\n2. Crear Usuario\n0. Salir";
+        cout<<"MENÚ"<<endl<<"1. Iniciar Sesión\n2. Crear Usuario\n0. Salir\n";
         cin>>op;
         switch(op){
             case 1:
@@ -218,7 +243,10 @@ int main(){
     do{
         op=mainMenu();
         switch(op){
-            
+            case 1:{
+                zonas();
+                break;
+            }
         }
     }while(op!=0);
 
