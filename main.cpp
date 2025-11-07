@@ -14,22 +14,77 @@ struct login{
     char passwd[10];
 }usuario;
 //struct de zona
+//struct de zona
 struct reg_zona{
     char id[10]= "";
-    string nomZona= "";
-    float umbral = 0;
-    int status_ventilador = 1;
+    char nomZona[50];
+    float umbral;
+    int status_ventilador; //0=off y 1=on
 }zona;
 //Funcion para registro de zonas
 void zonas(){
-    cout<<VERDE<<"Zona nueva"<<RESET<<endl;
+    reg_zona zona;
+    cout<<VERDE<<"Registro de Zona nueva"<<RESET<<endl;
     cout<<"Ingrese el ID de la zona: ";
     cin>>zona.id;
     cin.ignore();//Ignora el \n que queda del cin
     cout<<"\nIngresa el nombre de la zona: ";
-    getline(cin,zona.nomZona);
+    cin.getline(zona.nomZona, 50);    
     cout<<"Ingrese el umbral al que se activará el ventilador: ";
     cin>>zona.umbral;
+    zona.status_ventilador=0;
+
+    ofstream file("zonas.dat", ios::binary | ios::app);
+    if(!file){
+        cout << ROJO << "ERROR: No se pudo abrir el archivo zonas.dat" << RESET << endl;
+        return;
+    }
+    file.write((char*)&zona, sizeof(reg_zona));
+    file.close();
+    cout << VERDE << "Zona '" << zona.nomZona << "' registrada con exito" << RESET << endl;
+}
+
+void verZonas(){
+    ifstream file("zonas.dat", ios::binary);
+    if (!file){
+        cout << ROJO << "ERROR: No se pudo abrir el archivo zonas.dat \nRegistre una zona primero " << RESET << endl;
+        return;
+    }
+    reg_zona zona_temp;
+    cout << "\n" << VERDE << "ZONAS REGISTRADAS" << RESET << endl;
+    bool encontradas = false;
+    while(file.read((char*) &zona_temp, sizeof(reg_zona))){
+        encontradas= true;
+        cout << "ID: " << AMARILLO << zona_temp.id << RESET << "\nNombre: " << zona_temp.nomZona << "\nUmbral" << zona_temp.umbral << " C" << endl;
+    }
+    if (!encontradas){
+        cout << "No se encontraron zonas registradas" << endl;
+    }
+    file.close();
+}
+reg_zona seleccionarZona(){
+    verZonas();
+    ifstream file("zonas.dat", ios::binary);
+    reg_zona zona_temp;
+    reg_zona zona_encontrada;
+    if (!file){
+        return zona_encontrada;
+    }
+    char id_buscado[10];
+    cout << "\n" << AMARILLO << "Ingrese el ID de la zona" << RESET << endl;
+    cin >> id_buscado;
+    while(file.read((char*)&zona_temp, sizeof(reg_zona))){
+        if(strcmp(zona_temp.id, id_buscado)==0){
+            zona_encontrada= zona_temp;
+            break;
+        }
+    }
+    file.close();
+    if(strcmp(zona_encontrada.id, " ")==0){
+        cout << ROJO << "ERROR: No se encontro ese ID de zona. " << RESET << endl;
+        
+    }
+    return zona_encontrada;
 }
 //funcion para crear usuarios
 void newUser(){
@@ -77,8 +132,6 @@ void historial(){
 }
 
 void monitoreo(){}
-
-
 
 //menu para Control de Temperaturas
 void menuTem(){
