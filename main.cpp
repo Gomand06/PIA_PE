@@ -2,12 +2,23 @@
 #include <string>
 #include <fstream>
 #include <cstring>
+#include <cstdlib> // Para rand() y srand()
+#include <ctime>   // Para time() y strftime()
+#include <unistd.h> // Para sleep()
 //COLORES PARA LA TERMINAL
 #define RESET   "\033[0m"
 #define ROJO    "\033[31m"
 #define VERDE   "\033[32m"
 #define AMARILLO "\033[33m"
 using namespace std;
+//struct para el historial
+struct Evento {
+    char id_zona[10];
+    time_t timestamp; //para fecha y hora en numeros
+    float temperatura;
+    int status_ventilador; // 0=OFF, 1=ON
+    char modo[20]; // "Auto" o "Manual"
+};
 //struct de usuarios
 struct login{
     char user[10];
@@ -65,7 +76,6 @@ void zonas(){
     file.close();
     cout << VERDE << "Zona '" << zona.nomZona << "' registrada con exito" << RESET << endl;
 }
-
 void verZonas(){
     ifstream file("zonas.dat", ios::binary);
     if (!file){
@@ -142,26 +152,179 @@ bool checkUser(){
         }
     return exito;
 }
-
 //funciones para control de temperaturas
 void verTemp(){
-    
+    ifstream file("zonas.dat", ios::binary);
+    if (!file){
+        cout << ROJO << "ERROR: No se pudo abrir el archivo zonas.dat. \nRegistre una zona primero " << RESET << endl;
+        return;
+    }
+    reg_zona zona_temp;
+    cout << "\n" << VERDE << "MONITOR DE TEMPERATURA ACTUAL" << RESET << endl;
+    bool encontradas = false;
+    while(file.read((char*) &zona_temp, sizeof(reg_zona))){
+        encontradas = true;
+        float temp_actual = 20.0 + (rand() % 150) / 10.0; 
+        cout << "------------------------------------" << endl;
+        cout << "Zona: " << AMARILLO << zona_temp.nomZona << RESET << " (ID: " << zona_temp.id << ")" << endl;
+        cout << "Temperatura actual: " << temp_actual << " °C" << endl;
+        if(temp_actual > zona_temp.umbral) {
+            cout << "Estado del ventilador: " << VERDE << "ACTIVADO (automático)" << RESET << endl;
+        } else {
+            cout << "Estado del ventilador: " << ROJO << "OFF (automático)" << RESET << endl;
+        }
+    }
+    if (!encontradas){
+        cout << "No se encontraron zonas registradas" << endl;
+    }
+    file.close();
 }
+void registrarEvento(const char* id, float temp, int status, const char* modo) {
+    ofstream file("eventos.dat", ios::binary | ios::app);
+    if (!file) {
+        cout << ROJO << "ERROR: No se pudo abrir el archivo de eventos." << RESET << endl;
+        return;
+    }
+    Evento ev;
+    strcpy(ev.id_zona, id);
+    ev.timestamp = time(NULL);
+    ev.temperatura = temp;
+    ev.status_ventilador = status;
+    strcpy(ev.modo, modo);
 
+    file.write((char*)&ev, sizeof(Evento));
+    file.close();
+}
 void ventilador(){
+    cout << "\n" << VERDE << "ACTIVAR VENTILADOR MANUALMENTE" << RESET << endl;
+    reg_zona zona_sel = seleccionarZona();
+    if (zona_sel.id[0] == '\0') {
+         cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        return;
+    }
+    cout << "Seleccionó la zona: " << AMARILLO << zona_sel.nomZona << RESET << endl;
+    cout << "Estado actual: " << (zona_sel.status_ventilador == 1 ? "ENCENDIDO" : "APAGADO") << endl;
+    cout << "Seleccione acción:" << endl;
+    cout << "1. Encender ventilador" << endl;
+    cout << "2. Apagar ventilador" << endl;
+    cout << "0. Cancelar" << endl;
 
+    int op;
+    cin >> op;
+    int nuevo_estado = -1;
+    switch(op){
+        case 1:
+            nuevo_estado = 1; // ON
+            cout << "-> " << VERDE << "Ventilador encendido manualmente." << RESET << endl;
+            break;
+        case 2:
+            nuevo_estado = 0; // OFF
+            cout << "-> " << ROJO << "Ventilador apagado manualmente." << RESET << endl;
+            break;
+        case 0:
+            cout << "Operación cancelada." << endl;
+            return;
+        default:
+            cout << ROJO << "Opción inválida." << RESET << endl;
+            return;
+    }
+    fstream file("zonas.dat", ios::in | ios::out | ios::binary);
+    if (!file) {
+        cout << ROJO << "ERROR: No se pudo abrir 'zonas.dat' para actualizar." << RESET << endl;
+        return;
+    }
+
+    reg_zona zona_temp;
+    while(file.read((char*) &zona_temp, sizeof(reg_zona))){
+        if(strcmp(zona_temp.id, zona_sel.id) == 0){
+            zona_temp.status_ventilador = nuevo_estado; // Actualizamos el estado
+            long pos = (long)file.tellg() - sizeof(reg_zona);
+            file.seekp(pos);
+            file.write((char*)&zona_temp, sizeof(reg_zona));
+            
+            cout << VERDE << "Estado de la zona actualizado." << RESET << endl;
+            break;
+        }
+    }
+    file.close();
+    registrarEvento(zona_sel.id, -1.0, nuevo_estado, "Manual");
 }
 void historial(){
-
+    cout << "\n" << VERDE << "HISTORIAL DE EVENTOS" << RESET << endl;
+    reg_zona zona_sel = seleccionarZona();
+    if (zona_sel.id[0] == '\0') {
+        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        return;
+    }
+    cout << "Mostrando historial para: " << AMARILLO << zona_sel.nomZona << RESET << endl;
+    ifstream file("eventos.dat", ios::binary);
+    if (!file){
+        cout << ROJO << "ERROR: No se pudo abrir el archivo eventos.dat." << RESET << endl;
+        cout << "Aún no se ha registrado ningún evento." << endl;
+        return;
+    }
+    Evento ev;
+    bool encontradas = false;
+    char time_buffer[100];
+    while(file.read((char*)&ev, sizeof(Evento))){
+        if(strcmp(ev.id_zona, zona_sel.id) == 0){
+            encontradas = true;
+            tm* ptm = localtime(&ev.timestamp);
+            strftime(time_buffer, 100, "[%H:%M:%S]", ptm);
+            cout << AMARILLO << time_buffer << RESET;
+            if (strcmp(ev.modo, "Auto") == 0) {
+                 cout << " Temperatura: " << ev.temperatura << " °C";
+            }
+            cout << " Ventilador: " << (ev.status_ventilador == 1 ? VERDE "ON" : ROJO "OFF") << RESET;
+            cout << " (" << ev.modo << ")" << endl;
+        }
+    }
+    if (!encontradas){
+        cout << "No se encontraron eventos para esta zona." << endl;
+    }
+    file.close();
 }
+void monitoreo(){
+    cout << "\n" << VERDE << "SIMULAR MONITOREO EN TIEMPO REAL" << RESET << endl;
+    reg_zona zona_sel = seleccionarZona();
 
-void monitoreo(){}
+    if (zona_sel.id[0] == '\0') {
+        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        return;
+    }
 
+    int ciclos, segundos;
+    cout << "Ingrese el número de ciclos (lecturas) a simular: ";
+    cin >> ciclos;
+    cout << "Ingrese los segundos de espera entre ciclos: ";
+    cin >> segundos;
+    if (ciclos <= 0 || segundos <= 0) {
+        cout << ROJO << "Valores inválidos. Deben ser números positivos." << RESET << endl;
+        return;
+    }
+    cout << "\n" << AMARILLO << "Iniciando simulación para " << zona_sel.nomZona << "..." << RESET << endl;
+    cout << "Umbral de la zona: " << zona_sel.umbral << " °C" << endl;
+
+    for (int i = 0; i < ciclos; i++) {
+        float temp_actual = 20.0 + (rand() % 150) / 10.0;
+        int nuevo_estado = (temp_actual > zona_sel.umbral) ? 1 : 0;
+        time_t t_actual = time(NULL);
+        char time_buffer[100];
+        tm* ptm = localtime(&t_actual);
+        strftime(time_buffer, 100, "[%H:%M:%S]", ptm);
+        cout << AMARILLO << time_buffer << RESET 
+             << " Temperatura: " << temp_actual << " °C"
+             << "\tVentilador: " << (nuevo_estado == 1 ? VERDE "ON" : ROJO "OFF") << RESET << endl;
+        registrarEvento(zona_sel.id, temp_actual, nuevo_estado, "Auto");
+        sleep(segundos);
+    }
+    cout << VERDE << "Simulación finalizada." << RESET << endl;
+}
 //menu para Control de Temperaturas
 void menuTem(){
     int op=0;
     do{
-        cout << "\nCONTROL DE TEMPERATURAS" << endl;
+        cout << "\n" << AMARILLO << "CONTROL DE TEMPERATURAS" << RESET << endl;
         cout << "1. Ver temperatura actual" << endl;
         cout << "2. Activar ventilador manualmente" << endl;
         cout << "3. Ver historial de eventos" << endl;
@@ -175,15 +338,15 @@ void menuTem(){
             }
             case 2: {
                 ventilador();
-            break;
+                break;
             } 
             case 3:{
                 historial();
-            break;
+                break;
             }
             case 4: {
                 monitoreo();
-            break;
+                break;
             }
             case 5:{
                 cout << "Volviendo al menu principal... " << endl;
@@ -193,9 +356,8 @@ void menuTem(){
                 cout << ROJO << "Opcion invalida" << RESET << endl;
                 break;
         } 
-    } while (op!=0);
+    } while (op!=5);
 }
-
 //menu del programa principal YAP
 int mainMenu(){
     int op;
@@ -207,7 +369,6 @@ int mainMenu(){
     cout << "5. Salir" << endl;
     cin >> op;
     return op;
-
 }
 int main(){
     int op=0;
@@ -239,6 +400,7 @@ int main(){
             }
         }
     }while(op!=0 && exito==false);
+    srand(time(NULL)); // semilla aleatoria
     cout<<VERDE<<"BIENVENIDO AL SISTEMA DE CONTROL DE TEMPERATURA"<<endl<<RESET;
     do{
         op=mainMenu();
@@ -249,6 +411,7 @@ int main(){
             }
             case 2:
             {
+                menuTem();
                 break;
             }
             case 3:
