@@ -195,6 +195,268 @@ void registrarEvento(const char* id, float temp, int status, const char* modo) {
     file.write((char*)&ev, sizeof(Evento));
     file.close();
 }
+//Funcion para que las fechas sean mas faciles de manejar
+time_t construirFecha(int y, int m, int d, bool finDeDia){
+    tm t{};
+    t.tm_year = y-1900;
+    t.tm_mon  = m - 1;
+    t.tm_mday = d;
+    t.tm_hour = finDeDia ? 23 : 0;
+    t.tm_min  = finDeDia ? 59 : 0;
+    t.tm_sec  = finDeDia ? 59 : 0;
+    return mktime(&t);
+}
+//Funcion para pedir fecha
+bool pedirFecha(const char* etiqueta, time_t &out, bool finDeDia){
+    int y,m,d;
+    cout << etiqueta << " (AAAA MM DD): ";
+    if(!(cin >> y >> m >> d)){
+        cout << ROJO << "Entrada inválida." << RESET << endl;
+        cin.clear(); cin.ignore(10000, '\n');
+        return false;
+    }
+    out = construirFecha(y,m,d,finDeDia);
+    return true;
+}
+void buscarEventos(){
+    cout << "\n" << VERDE << "CONSULTA: BUSCAR EVENTOS" << RESET << endl;
+    reg_zona zona_sel = seleccionarZona();
+    if (zona_sel.id[0] == '\0') {
+        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        return;
+    }
+
+    cout << "\nSeleccione tipo de filtro:\n";
+    cout << "1. Por Rango de Temperatura\n";
+    cout << "2. Por Rango de Fechas\n";
+    cout << "0. Cancelar\n";
+    int op; 
+    cin >> op;
+
+    ifstream f("eventos.dat", ios::binary);
+    if(!f){
+        cout << ROJO << "ERROR: No se pudo abrir eventos.dat." << RESET << endl;
+        return;
+    }
+
+    bool encontrados = false;
+    Evento e;
+    char time_buffer[100];
+
+    switch(op){
+        case 0:
+            cout << "Operación cancelada." << endl;
+            f.close();
+            return;
+
+        case 1: { // Buscar por rango de temperatura
+            float tmin, tmax;
+            cout << "Temperatura mínima: "; cin >> tmin;
+            cout << "Temperatura máxima: "; cin >> tmax;
+            cout << "\n" << AMARILLO << "Resultados (filtro por temperatura)" << RESET << endl;
+
+            while(f.read((char*)&e, sizeof(Evento))){
+                if(strcmp(e.id_zona, zona_sel.id)==0){
+                    if(e.temperatura >= 0.0f && e.temperatura >= tmin && e.temperatura <= tmax){
+                        tm* ptm = localtime(&e.timestamp);
+                        strftime(time_buffer, 100, "[%H:%M:%S]", ptm);
+                        cout << AMARILLO << time_buffer << RESET
+                             << " Temperatura: " << e.temperatura << " °C"
+                             << "  Ventilador: " << (e.status_ventilador==1? VERDE "ON" : ROJO "OFF") << RESET
+                             << " (" << e.modo << ")" << endl;
+                        encontrados = true;
+                    }
+                }
+            }
+            break;
+        }
+
+        case 2: { // Buscar por rango de fechas
+            time_t desde, hasta;
+            if(!pedirFecha("Desde", desde, false)) { f.close(); return; }
+            if(!pedirFecha("Hasta", hasta, true))  { f.close(); return; }
+            if(difftime(hasta, desde) < 0){
+                cout << ROJO << "Rango de fechas inválido." << RESET << endl;
+                f.close(); 
+                return;
+            }
+
+            cout << "\n" << AMARILLO << "Resultados (filtro por fecha)" << RESET << endl;
+            while(f.read((char*)&e, sizeof(Evento))){
+                if(strcmp(e.id_zona, zona_sel.id)==0){
+                    if(e.timestamp >= desde && e.timestamp <= hasta){
+                        tm* ptm = localtime(&e.timestamp);
+                        strftime(time_buffer, 100, "[%H:%M:%S]", ptm);
+                        cout << AMARILLO << time_buffer << RESET;
+                        if(strcmp(e.modo,"Auto")==0 && e.temperatura>=0.0f){
+                            cout << " Temperatura: " << e.temperatura << " °C";
+                        }
+                        cout << "  Ventilador: " << (e.status_ventilador==1? VERDE "ON" : ROJO "OFF") << RESET
+                             << " (" << e.modo << ")" << endl;
+                        encontrados = true;
+                    }
+                }
+            }
+            break;
+        }
+
+        default:
+            cout << ROJO << "Opción inválida." << RESET << endl;
+            break;
+    }
+
+    if(!encontrados && op != 0){
+        cout << "No se encontraron eventos que cumplan el criterio." << endl;
+    }
+
+    f.close();
+}
+void reporteEstadistico(){
+    cout << "\n"<<VERDE<<"CONSULTA: REPORTE ESTADISTICO"<<RESET<<endl;
+    ifstream fz("zonas.dat", ios::binary);
+    if(!fz){
+        cout<<ROJO<<"ERROR: No se pudo abrir zonas.dat"<<RESET<<endl;
+        return;
+    }
+        reg_zona z;
+    bool hayZonas = false;
+
+    // Acumuladores del consolidado (para comparativos finales)
+    bool initMax=false, initMin=false;
+    float globalMax = 0, globalMin = 0, globalProm = 0;
+    char idMax[10]="", idMin[10]="", idProm[10]="";
+
+    while(fz.read((char*)&z, sizeof(reg_zona))){
+        hayZonas = true;
+
+        ifstream fe("eventos.dat", ios::binary);
+        if(!fe){
+            cout << ROJO << "ERROR: No se pudo abrir eventos.dat." << RESET << endl;
+            fz.close();
+            return;
+        }
+
+        float maxT = -1e9f, minT =  1e9f, sumT = 0.0f;
+        long  cnt  = 0;
+        Evento e;
+
+        while(fe.read((char*)&e, sizeof(Evento))){
+            if(strcmp(e.id_zona, z.id)==0){
+                // Usamos solo lecturas automáticas con temperatura válida
+                if(strcmp(e.modo,"Auto")==0 && e.temperatura >= 0.0f){
+                    if(e.temperatura > maxT) maxT = e.temperatura;
+                    if(e.temperatura < minT) minT = e.temperatura;
+                    sumT += e.temperatura;
+                    cnt++;
+                }
+            }
+        }
+        fe.close();
+
+        cout << "\nZona: " << AMARILLO << z.nomZona << RESET << " (ID: " << z.id << ")\n";
+        if(cnt==0){
+            cout << ROJO << "Sin datos automáticos para estadísticas." << RESET << endl;
+        } else {
+            float prom = sumT / (float)cnt;
+            cout << "Temperatura Máxima: " << maxT << " °C\n";
+            cout << "Temperatura Mínima: " << minT << " °C\n";
+            cout << "Promedio: " << prom << " °C\n";
+
+            // Consolidado global
+            if(!initMax || maxT > globalMax){ globalMax = maxT; strcpy(idMax, z.id); initMax = true; }
+            if(!initMin || minT < globalMin){ globalMin = minT; strcpy(idMin, z.id); initMin = true; }
+            // Para "Promedio total" tomaremos el mayor promedio
+            if(prom > globalProm){ globalProm = prom; strcpy(idProm, z.id); }
+        }
+    }
+    fz.close();
+
+    if(!hayZonas){
+        cout << ROJO << "No hay zonas registradas." << RESET << endl;
+        return;
+    }
+
+    cout << "\n" << VERDE << "RESUMEN GLOBAL" << RESET << endl;
+    if(!(initMax && initMin)){
+        cout << ROJO << "No hay suficientes datos para consolidado." << RESET << endl;
+    } else {
+        cout << "Zona con Temperatura Máxima: " << AMARILLO << idMax << RESET << " (" << globalMax << " °C)\n";
+        cout << "Zona con Temperatura Mínima: " << AMARILLO << idMin << RESET << " (" << globalMin << " °C)\n";
+        cout << "Zona con Mejor Promedio: "    << AMARILLO << idProm << RESET << " (" << globalProm << " °C)\n";
+    }
+}
+void exportarCSV(){
+    cout << "\n" << VERDE << "CONSULTA: EXPORTAR HISTORIAL A CSV" << RESET << endl;
+    reg_zona zona_sel = seleccionarZona();
+    if (zona_sel.id[0] == '\0') {
+        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        return;
+    }
+
+    ifstream fe("eventos.dat", ios::binary);
+    if(!fe){
+        cout << ROJO << "ERROR: No se pudo abrir eventos.dat." << RESET << endl;
+        return;
+    }
+
+    // Nombre de archivo: historial_<ID>.csv
+    char nombreCSV[64];
+    snprintf(nombreCSV, sizeof(nombreCSV), "historial_%s.csv", zona_sel.id);
+
+    ofstream out(nombreCSV);
+    if(!out){
+        cout << ROJO << "ERROR: No se pudo crear el archivo CSV." << RESET << endl;
+        fe.close(); return;
+    }
+
+    out << "id_zona,fecha,hora,temperatura,estado,modo\n";
+    Evento e;
+    char fecha[16], hora[16];
+    bool alguno=false;
+
+    while(fe.read((char*)&e, sizeof(Evento))){
+        if(strcmp(e.id_zona, zona_sel.id)==0){
+            tm* ptm = localtime(&e.timestamp);
+            strftime(fecha, sizeof(fecha), "%Y-%m-%d", ptm);
+            strftime(hora,  sizeof(hora),  "%H:%M:%S", ptm);
+            out << e.id_zona << "," 
+                << fecha << "," << hora << ",";
+            if(e.temperatura >= 0.0f) out << e.temperatura;
+            else                      out << ""; // vacío para eventos manuales
+            out << "," << (e.status_ventilador==1 ? "ON" : "OFF") << "," << e.modo << "\n";
+            alguno = true;
+        }
+    }
+    fe.close(); out.close();
+
+    if(alguno){
+        cout << VERDE << "Exportación exitosa: " << nombreCSV << RESET << endl;
+    } else {
+        cout << ROJO << "No hay eventos para la zona seleccionada. CSV vacío no generado." << RESET << endl;
+        // si deseas, elimina el archivo si quedó vacío
+        remove(nombreCSV);
+    }
+}
+void menuConsultas(){
+    int op=0;
+    do{
+        cout << "\n" << AMARILLO << "CONSULTAS" << RESET << endl;
+        cout << "1. Buscar eventos (rango temperatura/fecha)" << endl;
+        cout << "2. Generar reporte estadistico" << endl;
+        cout << "3. Exportar historial a CSV" << endl;
+        cout << "4. Volver al menu" << endl;
+        cin >> op;
+
+        switch(op){
+            case 1: buscarEventos();       break;
+            case 2: reporteEstadistico();  break;
+            case 3: exportarCSV();         break;
+            case 4: cout << "Volviendo..." << endl; break;
+            default: cout << ROJO << "Opcion invalida" << RESET << endl; break;
+        }
+    } while(op!=4);
+}
+
 void ventilador(){
     cout << "\n" << VERDE << "ACTIVAR VENTILADOR MANUALMENTE" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
@@ -388,6 +650,7 @@ int main(){
                 newUser();
                 break;
             }
+
             case 0:
             {
                 cout<<ROJO<<"Saliendo del sistema...\nGracias por usar nuestro programa"<<RESET;
@@ -416,6 +679,7 @@ int main(){
             }
             case 3:
             {
+                menuConsultas();
                 break;
             }
             case 4:
