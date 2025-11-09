@@ -620,10 +620,141 @@ void menuTem(){
         } 
     } while (op!=5);
 }
+//para configuracion
+void Configumbral(){
+    cout << "\n" << VERDE << "CONFIGURAR UMBRAL DE TEMPERATURA POR ZONA" << RESET << endl;
+    reg_zona zona_sel = seleccionarZona();
+    if(zona_sel.id[0]== '\0'){
+        cout << ROJO << "No se selecciono una zona valida." << RESET << endl;
+        return;
+    }
+    cout << "Zona Seleccionada: " << AMARILLO << zona_sel.nomZona << RESET << endl;
+    cout << "Umbral actual: " << zona_sel.umbral << " C" << endl;
+    float newumbral;
+    cout << "Ingrese nuevo umbral: ";
+    cin >> newumbral;
+    if(newumbral<=0){
+        cout << ROJO << "INVALIDO. El umbral debe ser positivo." << RESET << endl;
+        return;
+    }
+    fstream file("zonas.dat", ios::in | ios::out | ios::binary);
+    if (!file){
+        cout << ROJO << "ERROR: No se pudo abrir 'zonas.dat' para actualizar." << RESET << endl;
+        return; 
+    }
+    reg_zona zona_temp;
+    bool actualizado=false;
+    while(file.read((char*) &zona_temp, sizeof(reg_zona))){
+        if(strcmp(zona_temp.id, zona_sel.id)==0){
+            zona_temp.umbral=newumbral;
+            long posicion = (long)file.tellg()-sizeof(reg_zona);
+            file.seekp(posicion);
+            file.write((char*) &zona_temp, sizeof(reg_zona));
+            actualizado=true;
+            break;
+        }
+    }
+    file.close();
+    if(actualizado){
+        cout << VERDE << "Umbral actualizado correctamente. " << RESET << endl;
+    } else {
+        cout << ROJO << "ERROR. No se pudo actualizar el registro." << RESET << endl;
+    }
+
+}
+void Restconfig(){
+    cout << "\n" << AMARILLO <<"RESTAURAR CONFIGURACION POR DEFECTO POR ZONA" << RESET << endl;
+    const float umbralxdefecto= 30.0;
+    reg_zona zona_sel=seleccionarZona();
+    if(zona_sel.id[0]== '\0'){
+        cout << ROJO << "No se selecciono una zona valida." << RESET << endl;
+        return;
+    }
+    char confirm;
+    cout << AMARILLO << "¿Desea restaurar el umbral y limpiar historial para '" << zona_sel.nomZona << "'? (S/N): " << RESET;
+    cin >> confirm;
+
+    if (confirm != 'S' && confirm != 's') {
+        cout << "Operación cancelada." << endl;
+        return;
+    }
+    bool umbral_ok=false;
+    fstream file_zona("zonas.dat", ios::in | ios::out | ios::binary);
+    if (file_zona){
+        reg_zona zona_temp;
+        while(file_zona.read((char*) &zona_temp, sizeof(reg_zona))){
+            if(strcmp(zona_temp.id, zona_sel.id)== 0){
+                zona_temp.umbral=umbralxdefecto;
+                long posicion=(long)file_zona.tellg()-sizeof(reg_zona);
+                file_zona.seekp(posicion);
+                file_zona.write((char*) &zona_temp, sizeof(reg_zona));
+                umbral_ok=true;
+                break;
+            }
+        }
+        file_zona.close();
+    }
+    if(!umbral_ok){
+        cout << ROJO << "ERROR. No se pudo actualizar el umbral en 'zonas.dat'." << RESET << endl;
+    }
+    ifstream fe_in("eventos.dat", ios::binary);
+    ofstream fe_out("eventos.tmp", ios::binary | ios::trunc); //archivo temporal
+    if(!fe_in || !fe_out){
+        cout << ROJO << "ERROR. No se pudieron abrir los archivos de eventos para limpirarlos" << RESET << endl;
+        if (fe_in) fe_in.close();
+        if (fe_out) fe_out.close();
+        return;
+    }
+    Evento e;
+    bool historial_ok=true;
+    while(fe_in.read((char*)&e, sizeof(Evento))){
+        if(strcmp(e.id_zona, zona_sel.id)!=0){ //en caso de que no sea la zona que se desea borrar
+            fe_out.write((char*)&e, sizeof(Evento));
+        }
+    }
+    fe_in.close();
+    fe_out.close();
+    if (remove("eventos.dat")!=0){
+        cout << ROJO << "ERROR: No se pudo eliminar 'eventos.dat'. " << RESET << endl;
+        historial_ok=false;
+    } else if (rename("eventos.tmp", "eventos.dat") != 0){
+        cout << ROJO << "ERROR: No se pudo renombrar 'eventos.tmp'." << RESET << endl;
+        historial_ok=false;
+    }
+    if(umbral_ok && historial_ok){
+        cout << VERDE << "->Configuracion restaurada. Umbral: " << umbralxdefecto << " C. Historial borrado. " << RESET << endl;
+    } else {
+        cout << ROJO << "La operacion finalizo con errores. " << RESET << endl;
+    }
+}
+void menuConfig(){
+    int op;
+    do{
+    cout <<  "\n" << AMARILLO << "Configuracion" << RESET << endl;
+    cout << "1. Configurar umbral de temperatura por zona " << endl;
+    cout << "2. Restaurar configuracion por defecto por zona " << endl;
+    cout << "3. Volver al menu " << endl;
+    cin >> op;
+        switch (op){
+            case 1: Configumbral();
+                break;
+            case 2: Restconfig();
+                break;
+            case 3:
+                cout << "Volviendo al menu principal..." << endl;
+                break;
+            default:
+                cout << ROJO << "Opcion invalida" << RESET << endl;
+                break;
+
+        }
+    }while (op!=3);
+}
+
 //menu del programa principal YAP
 int mainMenu(){
     int op;
-    cout << "\n" << " MENU PRINCIPAL " << endl;
+    cout << "\n" << AMARILLO << " MENU PRINCIPAL " << RESET << endl;
     cout << "1. Zonas" << endl;
     cout << "2. Control de Temperaturas" << endl;
     cout << "3. Consultas" << endl;
@@ -684,6 +815,7 @@ int main(){
             }
             case 4:
             {
+                menuConfig();
                 break;
             }
             case 5:
