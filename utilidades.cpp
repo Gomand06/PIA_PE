@@ -189,36 +189,30 @@ void buscarEventos(){
         cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
-
     cout << "\nSeleccione tipo de filtro:\n";
     cout << "1. Por Rango de Temperatura\n";
     cout << "2. Por Rango de Fechas\n";
     cout << "0. Cancelar\n";
     int op; 
     cin >> op;
-
     ifstream f("eventos.dat", ios::binary);
     if(!f){
         cout << ROJO << "ERROR: No se pudo abrir eventos.dat." << RESET << endl;
         return;
     }
-
     bool encontrados = false;
     Evento e;
     char time_buffer[100];
-
     switch(op){
         case 0:
             cout << "Operacion cancelada." << endl;
             f.close();
             return;
-
-        case 1: { // Buscar por rango de temperatura
+        case 1: {
             float tmin, tmax;
             cout << "Temperatura minima: "; cin >> tmin;
             cout << "Temperatura maxima: "; cin >> tmax;
             cout << "\n" << AMARILLO << "Resultados (filtro por temperatura)" << RESET << endl;
-
             while(f.read((char*)&e, sizeof(Evento))){
                 if(strcmp(e.id_zona, zona_sel.id)==0){
                     if(e.temperatura >= 0.0f && e.temperatura >= tmin && e.temperatura <= tmax){
@@ -234,8 +228,7 @@ void buscarEventos(){
             }
             break;
         }
-
-        case 2: { // Buscar por rango de fechas
+        case 2: {
             time_t desde, hasta;
             if(!pedirFecha("Desde", desde, false)) { f.close(); return; }
             if(!pedirFecha("Hasta", hasta, true))  { f.close(); return; }
@@ -244,7 +237,6 @@ void buscarEventos(){
                 f.close(); 
                 return;
             }
-
             cout << "\n" << AMARILLO << "Resultados (filtro por fecha)" << RESET << endl;
             while(f.read((char*)&e, sizeof(Evento))){
                 if(strcmp(e.id_zona, zona_sel.id)==0){
@@ -263,16 +255,13 @@ void buscarEventos(){
             }
             break;
         }
-
         default:
             cout << ROJO << "Opcion invalida." << RESET << endl;
             break;
     }
-
     if(!encontrados && op != 0){
         cout << "No se encontraron eventos que cumplan el criterio." << endl;
     }
-
     f.close();
 }
 void reporteEstadistico(){
@@ -284,12 +273,9 @@ void reporteEstadistico(){
     }
         reg_zona z;
     bool hayZonas = false;
-
-    // Acumuladores del consolidado (para comparativos finales)
     bool initMax=false, initMin=false;
     float globalMax = 0, globalMin = 0, globalProm = 0;
     char idMax[10]="", idMin[10]="", idProm[10]="";
-
     while(fz.read((char*)&z, sizeof(reg_zona))){
         hayZonas = true;
 
@@ -299,11 +285,9 @@ void reporteEstadistico(){
             fz.close();
             return;
         }
-
         float maxT = -1e9f, minT =  1e9f, sumT = 0.0f;
         long  cnt  = 0;
         Evento e;
-
         while(fe.read((char*)&e, sizeof(Evento))){
             if(strcmp(e.id_zona, z.id)==0){
                 if(strcmp(e.modo,"Auto")==0 && e.temperatura >= 0.0f){
@@ -323,11 +307,8 @@ void reporteEstadistico(){
             cout << "Temperatura Maxima: " << maxT << " °C\n";
             cout << "Temperatura Minima: " << minT << " °C\n";
             cout << "Promedio: " << prom << " °C\n";
-
-            // Consolidado global
             if(!initMax || maxT > globalMax){ globalMax = maxT; strcpy(idMax, z.id); initMax = true; }
             if(!initMin || minT < globalMin){ globalMin = minT; strcpy(idMin, z.id); initMin = true; }
-            // Para "Promedio total" tomaremos el mayor promedio
             if(prom > globalProm){ globalProm = prom; strcpy(idProm, z.id); }
         }
     }
@@ -352,14 +333,11 @@ void exportarCSV(){
         cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
-
     ifstream fe("eventos.dat", ios::binary);
     if(!fe){
         cout << ROJO << "ERROR: No se pudo abrir eventos.dat." << RESET << endl;
         return;
     }
-
-    // Nombre de archivo: historial_<ID>.csv
     char nombreCSV[64];
     snprintf(nombreCSV, sizeof(nombreCSV), "historial_%s.csv", zona_sel.id);
 
@@ -393,7 +371,6 @@ void exportarCSV(){
         cout << VERDE << "Exportacion exitosa: " << nombreCSV << RESET << endl;
     } else {
         cout << ROJO << "No hay eventos para la zona seleccionada. CSV vacio no generado." << RESET << endl;
-        // si deseas, elimina el archivo si quedo vacio
         remove(nombreCSV);
     }
 }
@@ -416,7 +393,6 @@ void menuConsultas(){
         }
     } while(op!=4);
 }
-
 void ventilador(){
     cout << "\n" << VERDE << "ACTIVAR VENTILADOR MANUALMENTE" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
@@ -430,7 +406,6 @@ void ventilador(){
     cout << "1. Encender ventilador" << endl;
     cout << "2. Apagar ventilador" << endl;
     cout << "0. Cancelar" << endl;
-
     int op;
     cin >> op;
     int nuevo_estado = -1;
@@ -455,7 +430,6 @@ void ventilador(){
         cout << ROJO << "ERROR: No se pudo abrir 'zonas.dat' para actualizar." << RESET << endl;
         return;
     }
-
     reg_zona zona_temp;
     while(file.read((char*) &zona_temp, sizeof(reg_zona))){
         if(strcmp(zona_temp.id, zona_sel.id) == 0){
@@ -463,7 +437,6 @@ void ventilador(){
             long pos = (long)file.tellg() - sizeof(reg_zona);
             file.seekp(pos);
             file.write((char*)&zona_temp, sizeof(reg_zona));
-            
             cout << VERDE << "Estado de la zona actualizado." << RESET << endl;
             break;
         }
@@ -509,12 +482,10 @@ void historial(){
 void monitoreo(){
     cout << "\n" << VERDE << "SIMULAR MONITOREO EN TIEMPO REAL" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
-
     if (zona_sel.id[0] == '\0') {
         cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
-
     int ciclos, segundos;
     cout << "Ingrese el número de ciclos (lecturas) a simular: ";
     cin >> ciclos;
@@ -655,7 +626,7 @@ void Restconfig(){
         cout << ROJO << "ERROR. No se pudo actualizar el umbral en 'zonas.dat'." << RESET << endl;
     }
     ifstream fe_in("eventos.dat", ios::binary);
-    ofstream fe_out("eventos.tmp", ios::binary | ios::trunc); //archivo temporal
+    ofstream fe_out("eventos.tmp", ios::binary | ios::trunc);
     if(!fe_in || !fe_out){
         cout << ROJO << "ERROR. No se pudieron abrir los archivos de eventos para limpirarlos" << RESET << endl;
         if (fe_in) fe_in.close();
@@ -665,7 +636,7 @@ void Restconfig(){
     Evento e;
     bool historial_ok=true;
     while(fe_in.read((char*)&e, sizeof(Evento))){
-        if(strcmp(e.id_zona, zona_sel.id)!=0){ //en caso de que no sea la zona que se desea borrar
+        if(strcmp(e.id_zona, zona_sel.id)!=0){
             fe_out.write((char*)&e, sizeof(Evento));
         }
     }
