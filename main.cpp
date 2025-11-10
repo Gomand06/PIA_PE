@@ -5,9 +5,9 @@ int main(){
     bool exito=false;
     cout<<AMARILLO<<"SISTEMA DE CONTROL DE TEMPERATURA"<<endl<<RESET;
     do{
-        cout<<"MENÚ"<<endl<<"1. Iniciar Sesión\n2. Crear Usuario\n0. Salir\n";
+        cout<<"MENU"<<endl<<"1. Iniciar Sesion\n2. Crear Usuario\n0. Salir\n";
         cin>>op;
-        switch(op){
+1        switch(op){
             case 1:
             {
                 exito=checkUser();

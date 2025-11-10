@@ -33,7 +33,7 @@ void zonas(){
     cin.ignore();//Ignora el \n que queda del cin
     cout<<"\nIngresa el nombre de la zona: ";
     cin.getline(zona.nomZona, 50);    
-    cout<<"Ingrese el umbral al que se activará el ventilador: ";
+    cout<<"Ingrese el umbral al que se activara el ventilador: ";
     cin>>zona.umbral;
     zona.status_ventilador=0;
 
@@ -93,7 +93,7 @@ void newUser(){
     cout<<VERDE<<"NUEVO USUARIO"<<RESET<<endl;
     cout<<"Usuario [10]: "<<endl;
     cin>>usuario.user;
-    cout<<"Contraseña [10]: "<<endl;
+    cout<<"Contrasena [10]: "<<endl;
     cin>>usuario.passwd;
     fstream file("usuarios.dat",ios::binary | ios::app);
     file.write((char*)&usuario, sizeof(usuario));
@@ -103,22 +103,22 @@ void newUser(){
 //funcion para checar el usuario
 bool checkUser(){
     char userTemp[10],passwdTemp[10];
-    cout<<AMARILLO<<"INICIO DE SESIÓN"<<RESET<<endl;
+    cout<<AMARILLO<<"INICIO DE SESION"<<RESET<<endl;
     cout<<"Usuario: ";
     cin>>userTemp;
-    cout<<"Contraseña: ";
+    cout<<"Contrasena: ";
     cin>>passwdTemp;
     ifstream file("usuarios.dat",ios::binary);
     bool exito=false;
     while(file.read((char*)&usuario, sizeof(usuario))){
         if(strcmp(usuario.user,userTemp)==0 && strcmp(usuario.passwd,passwdTemp)==0){
             exito=true;
-            cout<<VERDE<<"Exito al iniciar sesión\n"<<RESET<<endl;
+            cout<<VERDE<<"Exito al iniciar sesion\n"<<RESET<<endl;
             break;
         } 
     }
     if(!exito){
-            cout<<ROJO<<"Usuario y contraseña incorrectos."<<RESET<<endl;
+            cout<<ROJO<<"Usuario y contrasena incorrectos."<<RESET<<endl;
         }
     return exito;
 }
@@ -139,9 +139,9 @@ void verTemp(){
         cout << "Zona: " << AMARILLO << zona_temp.nomZona << RESET << " (ID: " << zona_temp.id << ")" << endl;
         cout << "Temperatura actual: " << temp_actual << " °C" << endl;
         if(temp_actual > zona_temp.umbral) {
-            cout << "Estado del ventilador: " << VERDE << "ACTIVADO (automático)" << RESET << endl;
+            cout << "Estado del ventilador: " << VERDE << "ACTIVADO (automatico)" << RESET << endl;
         } else {
-            cout << "Estado del ventilador: " << ROJO << "OFF (automático)" << RESET << endl;
+            cout << "Estado del ventilador: " << ROJO << "OFF (automatico)" << RESET << endl;
         }
     }
     if (!encontradas){
@@ -181,7 +181,7 @@ bool pedirFecha(const char* etiqueta, time_t &out, bool finDeDia){
     int y,m,d;
     cout << etiqueta << " (AAAA MM DD): ";
     if(!(cin >> y >> m >> d)){
-        cout << ROJO << "Entrada inválida." << RESET << endl;
+        cout << ROJO << "Entrada invalida." << RESET << endl;
         cin.clear(); cin.ignore(10000, '\n');
         return false;
     }
@@ -192,7 +192,7 @@ void buscarEventos(){
     cout << "\n" << VERDE << "CONSULTA: BUSCAR EVENTOS" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
     if (zona_sel.id[0] == '\0') {
-        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
 
@@ -215,14 +215,14 @@ void buscarEventos(){
 
     switch(op){
         case 0:
-            cout << "Operación cancelada." << endl;
+            cout << "Operacion cancelada." << endl;
             f.close();
             return;
 
         case 1: { // Buscar por rango de temperatura
             float tmin, tmax;
-            cout << "Temperatura mínima: "; cin >> tmin;
-            cout << "Temperatura máxima: "; cin >> tmax;
+            cout << "Temperatura minima: "; cin >> tmin;
+            cout << "Temperatura maxima: "; cin >> tmax;
             cout << "\n" << AMARILLO << "Resultados (filtro por temperatura)" << RESET << endl;
 
             while(f.read((char*)&e, sizeof(Evento))){
@@ -246,7 +246,7 @@ void buscarEventos(){
             if(!pedirFecha("Desde", desde, false)) { f.close(); return; }
             if(!pedirFecha("Hasta", hasta, true))  { f.close(); return; }
             if(difftime(hasta, desde) < 0){
-                cout << ROJO << "Rango de fechas inválido." << RESET << endl;
+                cout << ROJO << "Rango de fechas invalido." << RESET << endl;
                 f.close(); 
                 return;
             }
@@ -271,7 +271,7 @@ void buscarEventos(){
         }
 
         default:
-            cout << ROJO << "Opción inválida." << RESET << endl;
+            cout << ROJO << "Opcion invalida." << RESET << endl;
             break;
     }
 
@@ -312,7 +312,7 @@ void reporteEstadistico(){
 
         while(fe.read((char*)&e, sizeof(Evento))){
             if(strcmp(e.id_zona, z.id)==0){
-                // Usamos solo lecturas automáticas con temperatura válida
+                // Usamos solo lecturas automaticas con temperatura valida
                 if(strcmp(e.modo,"Auto")==0 && e.temperatura >= 0.0f){
                     if(e.temperatura > maxT) maxT = e.temperatura;
                     if(e.temperatura < minT) minT = e.temperatura;
@@ -325,11 +325,11 @@ void reporteEstadistico(){
 
         cout << "\nZona: " << AMARILLO << z.nomZona << RESET << " (ID: " << z.id << ")\n";
         if(cnt==0){
-            cout << ROJO << "Sin datos automáticos para estadísticas." << RESET << endl;
+            cout << ROJO << "Sin datos automaticos para estadisticas." << RESET << endl;
         } else {
             float prom = sumT / (float)cnt;
-            cout << "Temperatura Máxima: " << maxT << " °C\n";
-            cout << "Temperatura Mínima: " << minT << " °C\n";
+            cout << "Temperatura Maxima: " << maxT << " °C\n";
+            cout << "Temperatura Minima: " << minT << " °C\n";
             cout << "Promedio: " << prom << " °C\n";
 
             // Consolidado global
@@ -350,8 +350,8 @@ void reporteEstadistico(){
     if(!(initMax && initMin)){
         cout << ROJO << "No hay suficientes datos para consolidado." << RESET << endl;
     } else {
-        cout << "Zona con Temperatura Máxima: " << AMARILLO << idMax << RESET << " (" << globalMax << " °C)\n";
-        cout << "Zona con Temperatura Mínima: " << AMARILLO << idMin << RESET << " (" << globalMin << " °C)\n";
+        cout << "Zona con Temperatura Maxima: " << AMARILLO << idMax << RESET << " (" << globalMax << " °C)\n";
+        cout << "Zona con Temperatura Minima: " << AMARILLO << idMin << RESET << " (" << globalMin << " °C)\n";
         cout << "Zona con Mejor Promedio: "    << AMARILLO << idProm << RESET << " (" << globalProm << " °C)\n";
     }
 }
@@ -359,7 +359,7 @@ void exportarCSV(){
     cout << "\n" << VERDE << "CONSULTA: EXPORTAR HISTORIAL A CSV" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
     if (zona_sel.id[0] == '\0') {
-        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
 
@@ -392,7 +392,7 @@ void exportarCSV(){
             out << e.id_zona << "," 
                 << fecha << "," << hora << ",";
             if(e.temperatura >= 0.0f) out << e.temperatura;
-            else                      out << ""; // vacío para eventos manuales
+            else                      out << ""; // vacio para eventos manuales
             out << "," << (e.status_ventilador==1 ? "ON" : "OFF") << "," << e.modo << "\n";
             alguno = true;
         }
@@ -400,10 +400,10 @@ void exportarCSV(){
     fe.close(); out.close();
 
     if(alguno){
-        cout << VERDE << "Exportación exitosa: " << nombreCSV << RESET << endl;
+        cout << VERDE << "Exportacion exitosa: " << nombreCSV << RESET << endl;
     } else {
-        cout << ROJO << "No hay eventos para la zona seleccionada. CSV vacío no generado." << RESET << endl;
-        // si deseas, elimina el archivo si quedó vacío
+        cout << ROJO << "No hay eventos para la zona seleccionada. CSV vacio no generado." << RESET << endl;
+        // si deseas, elimina el archivo si quedo vacio
         remove(nombreCSV);
     }
 }
@@ -431,12 +431,12 @@ void ventilador(){
     cout << "\n" << VERDE << "ACTIVAR VENTILADOR MANUALMENTE" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
     if (zona_sel.id[0] == '\0') {
-         cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+         cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
-    cout << "Seleccionó la zona: " << AMARILLO << zona_sel.nomZona << RESET << endl;
+    cout << "Selecciono la zona: " << AMARILLO << zona_sel.nomZona << RESET << endl;
     cout << "Estado actual: " << (zona_sel.status_ventilador == 1 ? "ENCENDIDO" : "APAGADO") << endl;
-    cout << "Seleccione acción:" << endl;
+    cout << "Seleccione accion:" << endl;
     cout << "1. Encender ventilador" << endl;
     cout << "2. Apagar ventilador" << endl;
     cout << "0. Cancelar" << endl;
@@ -454,10 +454,10 @@ void ventilador(){
             cout << "-> " << ROJO << "Ventilador apagado manualmente." << RESET << endl;
             break;
         case 0:
-            cout << "Operación cancelada." << endl;
+            cout << "Operacion cancelada." << endl;
             return;
         default:
-            cout << ROJO << "Opción inválida." << RESET << endl;
+            cout << ROJO << "Opcion invalida." << RESET << endl;
             return;
     }
     fstream file("zonas.dat", ios::in | ios::out | ios::binary);
@@ -485,7 +485,7 @@ void historial(){
     cout << "\n" << VERDE << "HISTORIAL DE EVENTOS" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
     if (zona_sel.id[0] == '\0') {
-        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
     cout << "Mostrando historial para: " << AMARILLO << zona_sel.nomZona << RESET << endl;
@@ -521,7 +521,7 @@ void monitoreo(){
     reg_zona zona_sel = seleccionarZona();
 
     if (zona_sel.id[0] == '\0') {
-        cout << ROJO << "Operación cancelada. No se seleccionó una zona válida." << RESET << endl;
+        cout << ROJO << "Operacion cancelada. No se selecciono una zona valida." << RESET << endl;
         return;
     }
 
@@ -531,10 +531,10 @@ void monitoreo(){
     cout << "Ingrese los segundos de espera entre ciclos: ";
     cin >> segundos;
     if (ciclos <= 0 || segundos <= 0) {
-        cout << ROJO << "Valores inválidos. Deben ser números positivos." << RESET << endl;
+        cout << ROJO << "Valores invalidos. Deben ser números positivos." << RESET << endl;
         return;
     }
-    cout << "\n" << AMARILLO << "Iniciando simulación para " << zona_sel.nomZona << "..." << RESET << endl;
+    cout << "\n" << AMARILLO << "Iniciando simulacion para " << zona_sel.nomZona << "..." << RESET << endl;
     cout << "Umbral de la zona: " << zona_sel.umbral << " °C" << endl;
 
     for (int i = 0; i < ciclos; i++) {
@@ -550,7 +550,7 @@ void monitoreo(){
         registrarEvento(zona_sel.id, temp_actual, nuevo_estado, "Auto");
         sleep(segundos);
     }
-    cout << VERDE << "Simulación finalizada." << RESET << endl;
+    cout << VERDE << "Simulacion finalizada." << RESET << endl;
 }
 //menu para Control de Temperaturas
 void menuTem(){
@@ -645,7 +645,7 @@ void Restconfig(){
     cin >> confirm;
 
     if (confirm != 'S' && confirm != 's') {
-        cout << "Operación cancelada." << endl;
+        cout << "Operacion cancelada." << endl;
         return;
     }
     bool umbral_ok=false;
@@ -728,7 +728,7 @@ int mainMenu(){
     cout << "1. Zonas" << endl;
     cout << "2. Control de Temperaturas" << endl;
     cout << "3. Consultas" << endl;
-    cout << "4. Configuración" << endl;
+    cout << "4. Configuracion" << endl;
     cout << "5. Salir" << endl;
     cin >> op;
     return op;
