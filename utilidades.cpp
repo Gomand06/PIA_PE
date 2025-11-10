@@ -1,7 +1,6 @@
 #include "utilidades.h"
 login usuario;
 reg_zona zona;
-//Funcion para registro de zonas
 bool verificador_zonas(char ID[]){
     reg_zona z;
     ifstream file("zonas.dat",ios::binary);
@@ -30,7 +29,7 @@ void zonas(){
         cin>>zona.id;
         res=verificador_zonas(zona.id);
     }while(!res);    
-    cin.ignore();//Ignora el \n que queda del cin
+    cin.ignore();
     cout<<"\nIngresa el nombre de la zona: ";
     cin.getline(zona.nomZona, 50);    
     cout<<"Ingrese el umbral al que se activara el ventilador: ";
@@ -88,7 +87,6 @@ reg_zona seleccionarZona(){
     }
     return zona_encontrada;
 }
-//funcion para crear usuarios
 void newUser(){
     cout<<VERDE<<"NUEVO USUARIO"<<RESET<<endl;
     cout<<"Usuario [10]: "<<endl;
@@ -100,7 +98,6 @@ void newUser(){
     file.close();
     cout<<VERDE<<"Usuario creado con exito"<<RESET<<endl;
 }
-//funcion para checar el usuario
 bool checkUser(){
     char userTemp[10],passwdTemp[10];
     cout<<AMARILLO<<"INICIO DE SESION"<<RESET<<endl;
@@ -122,7 +119,6 @@ bool checkUser(){
         }
     return exito;
 }
-//funciones para control de temperaturas
 void verTemp(){
     ifstream file("zonas.dat", ios::binary);
     if (!file){
@@ -165,7 +161,6 @@ void registrarEvento(const char* id, float temp, int status, const char* modo) {
     file.write((char*)&ev, sizeof(Evento));
     file.close();
 }
-//Funcion para que las fechas sean mas faciles de manejar
 time_t construirFecha(int y, int m, int d, bool finDeDia){
     tm t{};
     t.tm_year = y-1900;
@@ -176,7 +171,6 @@ time_t construirFecha(int y, int m, int d, bool finDeDia){
     t.tm_sec  = finDeDia ? 59 : 0;
     return mktime(&t);
 }
-//Funcion para pedir fecha
 bool pedirFecha(const char* etiqueta, time_t &out, bool finDeDia){
     int y,m,d;
     cout << etiqueta << " (AAAA MM DD): ";
@@ -312,7 +306,6 @@ void reporteEstadistico(){
 
         while(fe.read((char*)&e, sizeof(Evento))){
             if(strcmp(e.id_zona, z.id)==0){
-                // Usamos solo lecturas automaticas con temperatura valida
                 if(strcmp(e.modo,"Auto")==0 && e.temperatura >= 0.0f){
                     if(e.temperatura > maxT) maxT = e.temperatura;
                     if(e.temperatura < minT) minT = e.temperatura;
@@ -322,7 +315,6 @@ void reporteEstadistico(){
             }
         }
         fe.close();
-
         cout << "\nZona: " << AMARILLO << z.nomZona << RESET << " (ID: " << z.id << ")\n";
         if(cnt==0){
             cout << ROJO << "Sin datos automaticos para estadisticas." << RESET << endl;
@@ -340,12 +332,10 @@ void reporteEstadistico(){
         }
     }
     fz.close();
-
     if(!hayZonas){
         cout << ROJO << "No hay zonas registradas." << RESET << endl;
         return;
     }
-
     cout << "\n" << VERDE << "RESUMEN GLOBAL" << RESET << endl;
     if(!(initMax && initMin)){
         cout << ROJO << "No hay suficientes datos para consolidado." << RESET << endl;
@@ -392,7 +382,7 @@ void exportarCSV(){
             out << e.id_zona << "," 
                 << fecha << "," << hora << ",";
             if(e.temperatura >= 0.0f) out << e.temperatura;
-            else                      out << ""; // vacio para eventos manuales
+            else                      out << ""; 
             out << "," << (e.status_ventilador==1 ? "ON" : "OFF") << "," << e.modo << "\n";
             alguno = true;
         }
@@ -446,11 +436,11 @@ void ventilador(){
     int nuevo_estado = -1;
     switch(op){
         case 1:
-            nuevo_estado = 1; // ON
+            nuevo_estado = 1; 
             cout << "-> " << VERDE << "Ventilador encendido manualmente." << RESET << endl;
             break;
         case 2:
-            nuevo_estado = 0; // OFF
+            nuevo_estado = 0; 
             cout << "-> " << ROJO << "Ventilador apagado manualmente." << RESET << endl;
             break;
         case 0:
@@ -469,7 +459,7 @@ void ventilador(){
     reg_zona zona_temp;
     while(file.read((char*) &zona_temp, sizeof(reg_zona))){
         if(strcmp(zona_temp.id, zona_sel.id) == 0){
-            zona_temp.status_ventilador = nuevo_estado; // Actualizamos el estado
+            zona_temp.status_ventilador = nuevo_estado;
             long pos = (long)file.tellg() - sizeof(reg_zona);
             file.seekp(pos);
             file.write((char*)&zona_temp, sizeof(reg_zona));
@@ -552,7 +542,6 @@ void monitoreo(){
     }
     cout << VERDE << "Simulacion finalizada." << RESET << endl;
 }
-//menu para Control de Temperaturas
 void menuTem(){
     int op=0;
     do{
@@ -590,7 +579,6 @@ void menuTem(){
         } 
     } while (op!=5);
 }
-//para configuracion
 void Configumbral(){
     cout << "\n" << VERDE << "CONFIGURAR UMBRAL DE TEMPERATURA POR ZONA" << RESET << endl;
     reg_zona zona_sel = seleccionarZona();
@@ -630,7 +618,6 @@ void Configumbral(){
     } else {
         cout << ROJO << "ERROR. No se pudo actualizar el registro." << RESET << endl;
     }
-
 }
 void Restconfig(){
     cout << "\n" << AMARILLO <<"RESTAURAR CONFIGURACION POR DEFECTO POR ZONA" << RESET << endl;
@@ -720,8 +707,6 @@ void menuConfig(){
         }
     }while (op!=3);
 }
-
-//menu del programa principal YAP
 int mainMenu(){
     int op;
     cout << "\n" << AMARILLO << " MENU PRINCIPAL " << RESET << endl;
